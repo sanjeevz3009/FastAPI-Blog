@@ -104,7 +104,7 @@ def get_user_posts(user_id: int, db: Annotated[Session, Depends(get_db)]):
     return posts
 
 
-@app.get("/api/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/api/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
     result = db.execute(
         select(models.User).where(models.User.username == user.username)
@@ -115,6 +115,9 @@ def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"User with username '{user.username}' already exists",
         )
+    result = db.execute(
+        select(models.User).where(models.User.email == user.email),
+    )
 
     existing_email = result.scalars().first()
     if existing_email:
@@ -130,6 +133,14 @@ def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
     db.refresh(new_user)
 
     return new_user
+
+
+@app.get("/api/posts", response_model=list[PostResponse])
+def get_posts(db: Annotated[Session, Depends(get_db)]):
+    result = db.execute(select(models.Post))
+    posts = result.scalars().all()
+
+    return posts
 
 
 @app.post(
